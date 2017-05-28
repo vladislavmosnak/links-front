@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<div id="app">
+    <div class="links">
+        <div class="links-input">
+            <input type="text" v-model="newLink" placeholder="Enter link here">
+            <span v-if="isUrlUnproccesable">URL is unproccesable</span>
+            <button v-on:click="linkSubmit">Submit</button>
+        </div>
+        <div class="links-list">
+            <ul>
+                <li v-for="link in links">
+                    <div class="links-list-singlelink">
+                        <div class="links-list-singlelink-title">{{link.title}}</div>
+                        <div class="links-list-singlelink-description">{{link.description}}</div>
+                        <div class="links-list-singlelink-link">
+                            <a target="_blank" v-bind:href="link.url">Open</a>
+                        </div>
+                        <div class="links-list-singlelink-image">
+                            <img v-bind:src="link.image" alt="No image">
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .links-list ul{
+        list-style-type: none;
+    }
+    .links-list-singlelink{
+        width: 25%;
+        float: left;
+        text-align: center;
+    }
+    .links-list-singlelink-title{
+        font-size: 20px;
+    }
+    .links-list-singlelink-description{
+        font-size: 12px;
+        text-align: left;
+    }
+    .links-list-singlelink-link{
+        float: left;
+    }
+    .links-list-singlelink-image img{
+        width: 100%;
+        height: auto;
+    }
+</style>
+
+<script src="node_modules/vue/dist/vue.min.js"></script>
+<script src="node_modules/vue-resource/dist/vue-resource.min.js"></script>
+<script>
+
+    var app = new Vue({
+        el: '#app',
+        http: {
+            emulateJSON: true,
+            emulateHTTP: true
+        },
+        data: {
+            baseApiUrl: 'http://localhost/links/web/app_dev.php/api/',
+            isUrlUnproccesable: false,
+            newLink: '',
+            isSubmitLinkDisabled: true,
+            links: []
+        },
+        created(){
+            this.getLinks()
+        },
+        methods: {
+            linkSubmit: function (event) {
+                this.isUrlUnproccesable = false;
+                this.$http.post(this.baseApiUrl + 'link/autopopulate', {url:this.newLink, category: 1})
+                    .then(function (response) {
+                    this.links.push(response.data.data)
+                }, function (error) {
+                    if(error.status == 422){
+                        this.isUrlUnproccesable = true;
+                    }
+                });
+            },
+            getLinks: function () {
+                this.$http.get(this.baseApiUrl + 'links').then(function (response) {
+                    this.links = response.data.data
+                }, function (error) {
+                    console.error(error);
+                });
+            }
+        }
+    })
+</script>
+</body>
+</html>
