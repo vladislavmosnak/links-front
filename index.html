@@ -8,13 +8,25 @@
 
 <div id="app">
     <div class="links">
+        <div class="links-select">
+            <div class="links-select-bycategory">
+                <select v-model="filterByCategory"  v-on:change="filterByCategorym">
+                    <option value="0">All</option>
+                    <option v-for="category in categories" :value="category.id">{{category.categoryName}}</option>
+                </select>
+            </div>
+        </div>
         <div class="links-input">
             <input type="text" v-model="newLink" placeholder="Enter link here">
+            <select v-model="selectedCategory">
+                <option v-for="category in categories" :value="category.id">{{category.categoryName}}</option>
+            </select>
             <span v-if="isUrlUnproccesable">URL is unproccesable</span>
             <button v-on:click="linkSubmit">Submit</button>
         </div>
         <div class="links-list">
             <ul>
+                <li class="link-list-empty" v-if="links.length == 0">No links</li>
                 <li v-for="link in links">
                     <div class="links-list-singlelink">
                         <div class="links-list-singlelink-title">{{link.title}}</div>
@@ -22,6 +34,7 @@
                         <div class="links-list-singlelink-link">
                             <a target="_blank" v-bind:href="link.url">Open</a>
                         </div>
+                        <div class="links-list-singlelink-category">Category: {{link.category.name}}</div>
                         <div class="links-list-singlelink-image">
                             <img v-bind:src="link.image" alt="No image">
                         </div>
@@ -71,18 +84,37 @@
             baseApiUrl: 'http://localhost/links/web/app_dev.php/api/',
             isUrlUnproccesable: false,
             newLink: '',
+            selectedCategory: '',
+            filterByCategory: 0,
             isSubmitLinkDisabled: true,
-            links: []
+            links: [],
+            allLinks: [],
+            categories: []
         },
         created(){
             this.getLinks()
         },
         methods: {
+            filterByCategorym: function(event){
+                var newLinks = [];
+                var selectedCategory = this.filterByCategory;
+                if(selectedCategory == 0){
+                    newLinks = this.allLinks;
+                }
+                this.allLinks.forEach(function (link) {
+                   if(link.category.id == selectedCategory){
+                       newLinks.push(link);
+//                       console.log(this.links);
+                   }
+                });
+                this.links = newLinks;
+            },
             linkSubmit: function (event) {
                 this.isUrlUnproccesable = false;
-                this.$http.post(this.baseApiUrl + 'link/autopopulate', {url:this.newLink, category: 1})
+                this.$http.post(this.baseApiUrl + 'link/autopopulate', {url:this.newLink, category: this.selectedCategory})
                     .then(function (response) {
-                    this.links.push(response.data.data)
+                    this.links.push(response.data.data);
+                    this.newLink = '';
                 }, function (error) {
                     if(error.status == 422){
                         this.isUrlUnproccesable = true;
@@ -90,11 +122,16 @@
                 });
             },
             getLinks: function () {
-                this.$http.get(this.baseApiUrl + 'links').then(function (response) {
-                    this.links = response.data.data
+                this.$http.get(this.baseApiUrl + 'init').then(function (response) {
+                    this.links = response.data.data.links;
+                    this.allLinks = this.links;
+                    this.categories = response.data.data.categories;
+                    this.selectedCategory = this.categories[0].id;
+//                    Vue.set(this.data, 'selectedCategory', 55);
+//                    this.$set('selectedCategory', this.categories[0].id);
                 }, function (error) {
                     console.error(error);
-                });
+                }).bind(this);
             }
         }
     })
